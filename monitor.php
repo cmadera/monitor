@@ -196,7 +196,7 @@ function getDisks(&$warnings) {
             }
         }
     } else {
-        $command = "findmnt -lo target -t ext3,ext4,cifs";
+        $command = "findmnt -lo target -t ext3,ext4,cifs,xfs";
         exec("$command", $output); 
         $i = 0;
         foreach ($output as $line) {
