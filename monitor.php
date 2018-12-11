@@ -13,7 +13,7 @@
 //if (@$_GET["DISPLAY"]==NULL) return;
 $display = strtolower(@$_GET["DISPLAY"]);
 
-$MONVERSION = '1.0.11';
+$MONVERSION = '1.0.13';
 $inicioProcessoMonitor = microtime(true); 
 $warnings = 0;
 $monitor = array();
@@ -44,7 +44,7 @@ if ($display=="all" || $display=="warnings") {
 if ($display=="all") {
     array_push($monitor, array('name' => "UPTIME", 'value' => getUptime(), "mu" => "days"));
 }
-if ($display!="network") {
+if ($display!="network" && $display!="small" ) {
 	$dtSsl = sslValidTo($_SERVER['SERVER_NAME']); //if ($dtSsl=="N/A") {$warnings++;}
 	array_push($monitor, array('name' => "SSLEXPIRE", 'value' => $dtSsl, "mu" => ""));
 }
@@ -88,6 +88,11 @@ function getOSVersion() {
         } else {
             $version = exec("lsb_release -d -s");
         }
+        
+        if ($version == '') {
+        	$version = exec("cat /proc/version");
+        	$version = substr($version, 0, strpos($version, "#") );
+        }
     }
     return $version;
 }
@@ -111,6 +116,8 @@ function getLastUpdate() {
         //$aptDate = exec("stat -c %Y '/var/cache/apt'");
         $nowDate = exec("date +'%s'");
         $lastUpdate = round(($nowDate - $aptDate)/3600/24);
+        if ($lastUpdate>10000)
+        	$lastUpdate = round(($nowDate - exec("stat -c %Y '/var/cache'"))/3600/24);
     }
     return $lastUpdate;
 }
@@ -196,17 +203,17 @@ function getDisks(&$warnings) {
             }
         }
     } else {
-        $command = "findmnt -lo target -t ext3,ext4,cifs,xfs";
+        $command = "df -h --output=target -x tmpfs -x devtmpfs -x iso9660";
         exec("$command", $output); 
         $i = 0;
         foreach ($output as $line) {
-            if ($line!="TARGET") {
+            if ($line!="Mounted on") {
                 $ds = floor(disk_total_space($line)/(1000*1024*1024));
                 if ($ds>3 && $ds<1000) {
                     $i++;
                     $df = floor(disk_free_space($line)/(1000*1024*1024));
                     if (($df/$ds)*100<10) { $warnings++; }
-                   	array_push($disk, array('name' => "DISK".$i."(Free)", 'value' => $ds."GB (".floor(($df/$ds)*100).(($df/$ds)*100<10?"!":"")."%)", "mu" => ""));
+                   	array_push($disk, array('name' => "DISK:".$line."(Free)", 'value' => $ds."GB (".floor(($df/$ds)*100).(($df/$ds)*100<10?"!":"")."%)", "mu" => ""));
                 }
             }
         }
