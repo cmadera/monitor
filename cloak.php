@@ -1,4 +1,6 @@
 <?php
+include_once('Ping.php');
+
 $arrContextOptions=array(
     "ssl"=>array(
         "verify_peer"=>false,
@@ -10,12 +12,13 @@ $server = $_GET["SERVER"];
 $url = $_GET["HOST"];
 $que = $_GET["DISPLAY"];
 
+
 $response = array();
 
 try {
     $response = @file_get_contents($url, false, stream_context_create($arrContextOptions));
     if ($response=="") {
-        $response = '[{"name":"#SERVERNAME#","value":"'.$url.'"},{"name":"#ERROR#","value":"Empty answer"}]';
+        $response = '[{"name":"SERVERNAME","value":"'.$server.'"},{"name":"IP (ping)","value":"'.ping($server).'"}]';
     }
         
 }
@@ -50,6 +53,23 @@ if (count($ports)>0) {
 	}
 }
 
+if ($que=='Small')
+	$response =  json_decode('[{"name":"SERVERNAME","value":"'.$server.'"},{"name":"IP (ping)","value":"'.ping($server).'"}]');
+	
 echo json_encode($response);
 
 //print (join(" ", file ($_GET["HOST"])));
+
+
+function ping ($host, $timeout = 1000) {
+
+	$ping = new Ping($host);
+    $result = $ping->ping();
+    $ip = $ping->getIpAddress();
+	
+    if ($result) {    
+	    return $ip.' ('.$result.')';
+    } else {
+        return "not found";
+    }
+}
